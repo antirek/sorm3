@@ -1,0 +1,83 @@
+Filters DEFINITIONS IMPLICIT TAGS ::=
+BEGIN
+
+EXPORTS filterMessage;
+
+IMPORTS TAGGED, 
+    sorm-message-filter
+    FROM Classification
+
+    IPAddress,
+    IPPort,
+    IPMask,
+    PortRange
+    FROM NetworkIdentifiers;
+
+filterMessage TAGGED ::= {
+    OID {
+        sorm-message-filter
+        }
+    DATA CHOICE {
+        create-filter-request [0] CreateFilterRequest,
+        create-filter-response [1] CreateFilterResponse,
+        drop-filter-request [2] DropFilterRequest,
+        drop-filter-response [3] DropFilterResponse
+    }
+}
+
+CreateFilterRequest ::= SEQUENCE {
+    filter-id FilterID,
+    filter-parameters FilterParameters
+    allow-only-mode BOOLEAN DEFAULT TRUE
+}
+
+CreateFilterResponse ::= SEQUENCE {
+    filter-id FilterID,
+    successful BOOLEAN,
+    error-description UTF8String (SIZE (1 .. 256)) OPTIONAL
+}
+
+DropFilterRequest ::= FilterID
+
+DropFilterResponse ::= SEQUENCE {
+    filter-id FilterID,
+    successful BOOLEAN,
+    error-description UTF8String (SIZE (1 .. 256)) OPTIONAL
+}
+
+FilterParameters ::= SEQUENCE OF FilterParameter
+
+FilterParameter ::= CHOICE {
+    single-criteria [0] FilterSingleCriteria,   --- одиночный критерий
+    pair-criteria [1] FilterPairCriteria        --- два критерия объединенные по логическому "И"
+}
+
+FilterPairCriteria ::= SEQUENCE {
+    criteria-a [0] FilterSingleCriteria,        --- критерий 1
+    criteria-b [1] FilterSingleCriteria         --- критерий 2
+}
+
+FilterSingleCriteria ::= CHOICE {
+    ip-address [0] IPAddress,                   --- IP адрес
+    ip-port [1] IPPort,                         --- IP порт
+    port-range [2] PortRange,                   --- диапазон TCP/UDP портов
+    vlan [3] INTEGER (SIZE (0 .. 4096)),        --- 802.1Q метка (VLAN)
+    mac [4] OCTET STRING (SIZE (6)),            --- MAC-адрес
+    mpls-tag [5] INTEGER,                       --- MPLS-метка
+    sni [6] UTF8String (SIZE (1 .. 128)),       --- SSL/TLS server name
+    http-content-type [7] UTF8String (SIZE (1 .. 64)),   
+                                                --- тип содержимого поля Conten-type HTTP-заголовка
+    protocol-group [8] INTEGER,                 --- группа прикладных протоколов
+    ip-protocol-number [9] INTEGER,             --- номер интернет-протокола по RFC1700
+    http-cookie [10] UTF8String,                --- HTTP Cookie,
+    http-uri [11] UTF8String                    --- HTTP URI
+}
+
+IPFilterMask ::= SEQUENCE {
+    mask IPMask,                                --- маска IP/сети
+    mask-length INTEGER                         --- длина маски
+}
+
+FilterID ::= INTEGER
+
+END
